@@ -21,7 +21,7 @@ except ImportError:
     pass
 
 # ==========================================
-# ⚡ NEURAL GITHUB BOT (自動上傳 YT 最終版)
+# ⚡ NEURAL GITHUB BOT (語法修復版)
 # ==========================================
 
 # 讀取金鑰
@@ -63,7 +63,7 @@ def upload_to_youtube(video_path, title, description):
                 'categoryId': '28' # 科技類
             },
             'status': {
-                'privacyStatus': 'public', # 直接公開
+                'privacyStatus': 'public', # 若想先測試可改 'private'
                 'selfDeclaredMadeForKids': False
             }
         }
@@ -150,5 +150,30 @@ async def main():
         yt_title = f"{title_raw} #Shorts"
         script = f"大家好，今日新聞是{title_raw}。"
 
-    # 3. 轉語音
-    if not await rob
+    # 3. 轉語音 (這裡是你剛剛斷掉的地方，現在修好了)
+    if not await robust_tts(script): sys.exit(1)
+
+    # 4. 剪輯
+    output_file = "final_output.mp4"
+    print(f"🎬 剪輯中... (標題: {yt_title})")
+    
+    cmd = ["ffmpeg", "-y", "-stream_loop", "-1", "-i", bg_video, "-i", "temp_voice.mp3"]
+    if bg_music:
+        cmd.extend(["-stream_loop", "-1", "-i", bg_music])
+        cmd.extend(["-filter_complex", "[2:a]volume=0.1[bg];[1:a][bg]amix=inputs=2:duration=first[aout]", "-map", "0:v", "-map", "[aout]"])
+    else:
+        cmd.extend(["-map", "0:v", "-map", "1:a"])
+
+    cmd.extend(["-t", "58", "-c:v", "libx264", "-preset", "ultrafast", "-shortest", output_file])
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    
+    if os.path.exists(output_file):
+        print(f"🎉 影片生成成功！準備上傳...")
+        # 5. 上傳到 YouTube
+        description = f"AI 自動生成報導。\n新聞來源：{title_raw}\n#AI #Tech #Shorts"
+        upload_to_youtube(output_file, yt_title, description)
+    else:
+        print("❌ 影片生成失敗")
+
+if __name__ == "__main__":
+    asyncio.run(main())
