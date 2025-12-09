@@ -2,39 +2,46 @@ name: NeuralWaves Auto Generator
 
 on:
   schedule:
-    # 這裡設定時間：每 6 小時執行一次 (UTC時間)
-    - cron: '0 */6 * * *'
-  # 允許你手動按按鈕觸發測試
-  workflow_dispatch:
+    - cron: '0 */6 * * *' # 每6小時執行
+  workflow_dispatch:      # 手動觸發按鈕
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: 下載程式碼 (Checkout)
+    - name: 📥 下載程式碼 (Checkout)
       uses: actions/checkout@v3
 
-    - name: 安裝 FFmpeg
-      run: sudo apt-get update && sudo apt-get install -y ffmpeg
+    - name: 🛠️ 安裝系統工具 (FFmpeg)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
 
-    - name: 安裝 Python
+    - name: 🐍 設定 Python 環境
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
 
-    - name: 安裝 Python 套件
+    - name: 📦 強制安裝 Python 套件 (略過 requirements.txt)
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        # 這裡直接指定套件名稱，解決讀不到檔案的問題，也不怕檔名打錯
+        pip install google-generativeai edge-tts feedparser gTTS certifi ffmpeg-python requests
 
-    - name: 執行 AI 生成腳本
+    - name: 🔍 自我檢查 (Debug)
+      run: |
+        echo "正在檢查目錄下的檔案..."
+        ls -la
+        # 這行會列出所有檔案，確保你的 neural_ultimate.py 和素材真的存在
+
+    - name: 🤖 執行 AI 生成腳本
       env:
-        # 把剛剛設定的 Secret 注入到環境變數
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: python neural_ultimate.py
 
-    - name: 上傳生成的影片 (Artifact)
+    - name: 📤 上傳生成的影片
+      if: success() 
       uses: actions/upload-artifact@v4
       with:
         name: neural-video
