@@ -1,0 +1,35 @@
+name: Auto Shorts Matrix
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 每天台灣時間早上 8 點自動跑
+  workflow_dispatch:    # 讓你現在可以手動按按鈕測試
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg imagemagick
+
+    - name: Install Python Libraries
+      run: pip install -r requirements.txt
+
+    - name: Run Auto Bot
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+        YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+        YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+      run: python main.py
