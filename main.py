@@ -19,7 +19,6 @@ YT_REFRESH_TOKEN = os.environ["YT_REFRESH_TOKEN"]
 def download_background():
     print("📥 正在下載背景影片...")
     # 使用 Pexels 的免費高品質直式影片 (無版權)
-    # 這裡放一個穩定的風景影片連結，避免連結失效
     video_url = "https://videos.pexels.com/video-files/3629511/3629511-hd_1080_1920_25fps.mp4"
     
     try:
@@ -39,7 +38,7 @@ def get_ai_script():
     print("🧠 正在生成 AI 文案...")
     genai.configure(api_key=GEMINI_KEY)
     
-    # 使用最新的 Flash 模型，速度快且免費
+    # 使用最新的 Flash 模型
     model = genai.GenerativeModel('gemini-1.5-flash')
     
     topics = ["冷知識", "生活小撇步", "驚人事實", "每日激勵", "心理學效應", "科技新知"]
@@ -56,6 +55,9 @@ def get_ai_script():
         # 過濾掉空行
         lines = [line for line in lines if line.strip()]
         
+        if not lines:
+            raise ValueError("AI 回傳內容為空")
+
         title = lines[0].strip()
         content = "".join(lines[1:]).strip()
         
@@ -68,7 +70,6 @@ def get_ai_script():
 # --- 3. 轉語音 (Edge-TTS) ---
 async def make_voice(text):
     print("🗣️ 正在轉語音...")
-    # 使用微軟超自然語音：雲希 (男聲) 或 曉曉 (女聲)
     voice = "zh-CN-XiaoxiaoNeural" 
     output = "voice.mp3"
     communicate = edge_tts.Communicate(text, voice)
@@ -86,27 +87,24 @@ def make_video(video_path, voice_path):
     w, h = clip.size
     target_ratio = 9/16
     if w/h > target_ratio:
-        # 如果太寬，裁切中間
         new_w = h * target_ratio
         clip = clip.crop(x1=w/2 - new_w/2, width=new_w, height=h)
     
-    # 2. 調整長度 (影片長度 = 語音長度)
-    # 如果背景片太短，就循環播放；太長就切斷
-    final_duration = audio.duration + 1.0 # 多留1秒尾韻
+    # 2. 調整長度
+    final_duration = audio.duration + 1.0 
     final_clip = clip.loop(duration=final_duration)
     
     # 3. 合成音軌
     final_clip = final_clip.set_audio(audio)
     
     output_path = "final_output.mp4"
-    # 使用最相容的編碼，避免上傳失敗
     final_clip.write_videofile(
         output_path, 
         fps=24, 
         codec="libx264", 
         audio_codec="aac", 
         threads=4,
-        logger=None # 減少 log 輸出
+        logger=None
     )
     print("✅ 影片合成完成！")
     return output_path
@@ -126,12 +124,12 @@ def upload_youtube(video_path, title, description):
     
     body = {
         "snippet": {
-            "title": title[:90], # 標題限制 100 字
-            "description": description + "\n\n#Shorts #AI #自動化 #冷知識", 
-            "categoryId": "22" # 22 = People & Blogs
+            "title": title[:90], 
+            "description": description + "\n\n#Shorts #AI #自動化", 
+            "categoryId": "22"
         },
         "status": {
-            "privacyStatus": "public", # 直接公開
+            "privacyStatus": "public",
             "selfDeclaredMadeForKids": False
         }
     }
@@ -144,4 +142,20 @@ def upload_youtube(video_path, title, description):
     while response is None:
         status, response = request.next_chunk()
         if status:
-            print(f"上傳進度: {int(status.
+            # 這一行是你剛剛報錯的地方，我已經修好了
+            print(f"上傳進度: {int(status.progress() * 100)}%")
+            
+    print("🎉 上傳成功！影片已發布。")
+
+# --- 主執行區 ---
+if __name__ == "__main__":
+    try:
+        bg_video = download_background()     
+        title, text = get_ai_script()        
+        asyncio.run(make_voice(text))        
+        final_video = make_video(bg_video, "voice.mp3") 
+        upload_youtube(final_video, title, text) 
+        
+    except Exception as e:
+        print(f"❌ 程式執行發生錯誤: {e}")
+        exit(1)
