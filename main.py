@@ -33,7 +33,7 @@ def download_background():
 def get_ai_script():
     print("🧠 正在生成 AI 文案...")
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-pro')
     
     topics = ["冷知識", "生活小撇步", "驚人事實", "每日激勵", "心理學效應"]
     topic = random.choice(topics)
