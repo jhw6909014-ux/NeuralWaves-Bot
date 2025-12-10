@@ -1,0 +1,10 @@
+moviepy==1.0.3
+edge-tts
+google-generativeai
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
+requests
+imageio==2.33.1
+imageio-ffmpeg
+decorator==4.4.2
